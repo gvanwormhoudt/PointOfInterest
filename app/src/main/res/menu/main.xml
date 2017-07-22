@@ -1,0 +1,16 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="eu.telecom.lille.pointofinterest.MainActivity" >
+
+    <item
+        android:id="@+id/addPOI"
+        android:orderInCategory="100"
+        android:title="@string/addPOI"
+        app:showAsAction="never"/>
+    <item android:id="@+id/removePOI" android:title="@string/removePOI" android:orderInCategory="100">
+        
+    </item>
+    <item android:id="@+id/openGMap" android:title="@string/openGMap" android:orderInCategory="100"></item>
+
+</menu>

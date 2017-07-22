@@ -1,0 +1,319 @@
+package eu.telecom.lille.pointofinterest;
+
+import java.util.Date;
+
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.ActionBar;
+import android.support.v4.app.Fragment;
+import android.content.Context;
+import android.content.Intent;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.location.LocationProvider;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+import android.widget.Toast;
+import android.os.Build;
+
+public class EditPOIActivity extends ActionBarActivity implements OnClickListener {
+
+	private static final String DATA_POI_KEY = "data_poi";
+
+	private static final String tag = ActionBarActivity.class.getName();	
+	
+	EditText labelEditText;
+	EditText descriptionEditText;
+	TextView positionTextView;
+	Button addPOIBtn; 
+	
+	Location location;
+	LocationManager locationManager;
+	LocationListener locationListener;
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_edit_poi);
+		
+		initLocationManager();
+		if (!isGPSEnabled()) {
+			Toast.makeText(this, "Please enable GPS", Toast.LENGTH_LONG).show();
+			finish();
+		} 
+		
+		labelEditText = (EditText) findViewById(R.id.labelEditText);
+		descriptionEditText = (EditText) findViewById(R.id.descriptionEditText);
+		positionTextView = (TextView) findViewById(R.id.positionTextView);
+		
+		addPOIBtn = (Button) findViewById(R.id.addPOIBtn);
+		addPOIBtn.setOnClickListener(this);
+	}
+	
+	/* Request updates at startup */
+	  @Override
+	  protected void onResume() {
+	    super.onResume();
+	    registerGPSListener();
+	  }
+
+	  /* Remove the locationlistener updates when Activity is paused */
+	  @Override
+	  protected void onPause() {
+	    super.onPause();
+	    unregisterGPSListener();
+	  }
+
+
+	
+	protected void registerGPSListener() {
+		locationListener = new MyLocationListener();
+		locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 400, 0.0F, locationListener);
+	}
+	
+	protected void unregisterGPSListener() {
+		locationManager.removeUpdates(locationListener);
+	}
+	
+	
+	
+	protected void initLocationManager() {
+		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+	}
+	
+	protected boolean isGPSEnabled() {
+		 boolean result =  locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+		 return result;
+	}
+	
+
+	@Override
+	public void onClick(View arg0) {
+		 Intent intent = new Intent();		 
+		 String label = labelEditText.getText().toString();
+		 if (label.isEmpty()) {
+			 Toast.makeText(this, "Label must not be empty", Toast.LENGTH_SHORT);
+			 return;
+		 }
+		 String description = descriptionEditText.getText().toString();
+		 if (description.isEmpty()) {
+			 Toast.makeText(this, "Description must not be empty", Toast.LENGTH_SHORT);
+			 return;
+		 }
+		 PointOfInterest poi = new PointOfInterest(label, description, location.getLongitude(), location.getLatitude(), new Date());
+		 intent.putExtra(DATA_POI_KEY, poi);
+		 setResult(RESULT_OK, intent);
+		 finish();
+	}
+
+	protected void updatePositionStr() {
+		String positionStr = "Unknow position";
+		if (location != null) {
+ 			positionStr = "Lat:" + Double.toString(location.getLatitude()) + "," + 
+ 						"Long:" + Double.toString(location.getLongitude());
+		}
+		positionTextView.setText(positionStr);
+	}
+	
+	class MyLocationListener implements LocationListener {
+		@Override
+		public void onLocationChanged(Location loc) {
+			location = loc;
+			Log.d(tag, "Latitude:" + Double.toString(loc.getLatitude()));
+	        Log.d(tag, "Longitude:" + Double.toString(loc.getLongitude()));
+	        updatePositionStr();
+		}
+
+		@Override
+		public void onStatusChanged(String provider, int status, Bundle extras) {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		  public void onProviderEnabled(String provider) {
+		    Toast.makeText(EditPOIActivity.this, "Enabled new provider " + provider,
+		        Toast.LENGTH_SHORT).show();
+
+		  }
+
+		  @Override
+		  public void onProviderDisabled(String provider) {
+		    Toast.makeText(EditPOIActivity.this, "Disabled provider " + provider,
+		        Toast.LENGTH_SHORT).show();
+		  }
+	}
+}
+package eu.telecom.lille.pointofinterest;
+
+import java.util.Date;
+
+import android.app.Activity;
+import android.app.ListActivity;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.Toast;
+
+
+public class MainActivity extends ListActivity  {
+
+	private static final int EDIT_POI_RESULT = 1;
+
+	private static final String DATA_POI_KEY = "data_poi";
+	
+	protected ArrayAdapter<PointOfInterest> pointsOfInterestAdapter;
+    protected ListView pointsOfInterestListView; 
+	
+	
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        
+        pointsOfInterestAdapter = new ArrayAdapter<PointOfInterest>(this, android.R.layout.simple_list_item_single_choice);
+        
+        pointsOfInterestListView = (ListView) findViewById(android.R.id.list);
+        pointsOfInterestListView.setAdapter(pointsOfInterestAdapter);
+     
+        // pointsOfInterestListView.setOnItemClickListener(this);
+        
+        pointsOfInterestAdapter.add(new PointOfInterest("Contis plage", "", 0, 0, new Date()));
+        pointsOfInterestAdapter.add(new PointOfInterest("Cliff of moher", "", 0, 0, new Date()));
+        pointsOfInterestAdapter.add(new PointOfInterest("Museum of modern art, NY", "", 0, 0, new Date()));
+        
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+    
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+    	super.onPrepareOptionsMenu(menu);
+    	
+    	boolean visible = this.pointsOfInterestListView.getCheckedItemPosition() != AdapterView.INVALID_POSITION;
+    	menu.findItem(R.id.removePOI).setVisible(visible);
+    	menu.findItem(R.id.openGMap).setVisible(visible);
+    	return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+        int itemPosition; 
+        PointOfInterest poi = null;
+        switch(id) {
+        case R.id.addPOI:
+        	Intent intent = new Intent(MainActivity.this,
+					EditPOIActivity.class);
+			startActivityForResult(intent, EDIT_POI_RESULT);
+        	return true; 
+        	
+        case R.id.removePOI:
+        	itemPosition = this.pointsOfInterestListView.getCheckedItemPosition();
+        	poi = this.pointsOfInterestAdapter.getItem(itemPosition);
+        	this.pointsOfInterestAdapter.remove(poi);
+        	return true;
+        	
+        case R.id.openGMap:
+        	itemPosition = this.pointsOfInterestListView.getCheckedItemPosition();
+        	poi = this.pointsOfInterestAdapter.getItem(itemPosition);
+        	Intent geoIntent = new Intent(android.content.Intent.ACTION_VIEW,
+        			Uri.parse("geo:" + poi.getLattitude() + "," + poi.getLongitude()));
+        	startActivity(geoIntent);
+         
+        	return true;
+        	
+        default:
+        	return super.onOptionsItemSelected(item);
+        }
+    }
+
+	
+	public void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        switch (requestCode) {
+	        case EDIT_POI_RESULT:
+	            if (resultCode == Activity.RESULT_OK) {
+	            	PointOfInterest newPOI = (PointOfInterest) data.getSerializableExtra(DATA_POI_KEY);
+	            	pointsOfInterestAdapter.add(newPOI);
+	            }  
+        }
+    }
+}
+package eu.telecom.lille.pointofinterest;
+
+import java.io.Serializable;
+import java.util.Date;
+
+import android.location.Location;
+
+public class PointOfInterest implements Serializable {
+	
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -9149864555972261917L;
+	protected String label;
+	protected String description;
+	protected double lattitude;
+	protected double longitude;
+	protected Date visitedDate;
+	// protected int score;
+	
+	public PointOfInterest(String label, String desc, double lg, double lt, Date  visitedDate) {
+		this.label = label;
+		this.description = desc;
+		this.longitude = lg;
+		this.lattitude = lt; 
+	}
+
+	public String getLabel() {
+		return label;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public double getLattitude() {
+		return lattitude;
+	}
+
+	public double getLongitude() {
+		return longitude;
+	}
+
+	public Date getVisitedDate() {
+		return visitedDate;
+	}
+	
+	public String toString() {
+		return label;
+	}
+}

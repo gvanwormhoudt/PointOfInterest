@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">PointOfInterest</string>
+    <string name="addPOI">Add POI</string>
+    <string name="removePOI">Remove POI</string>
+    <string name="label_str">Label</string>
+    <string name="description_str">Description</string>
+    <string name="position_str">Current Position</string>
+    <string name="title_activity_edit_poi">EditPOIActivity</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="openGMap">Goole Map</string>
+    <string name="addPOIBtn">Add POI</string>
+    	<color name="myColor">#3399CC</color>
+
+</resources>
