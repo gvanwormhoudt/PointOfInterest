@@ -1,22 +1,25 @@
 package eu.telecom.lille.pointofinterest;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
 import android.app.Activity;
 import android.app.ListActivity;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.Toast;
 
 
 public class MainActivity extends ListActivity  {
@@ -27,29 +30,39 @@ public class MainActivity extends ListActivity  {
 	private static final int EDIT_POI_RESULT = 1;
 
 	private static final String DATA_POI_KEY = "data_poi";
-	
-	protected ArrayAdapter<PointOfInterest> pointsOfInterestAdapter;
-    protected ListView pointsOfInterestListView; 
-	
+
+    protected List<PointOfInterest> pointOfInterest = new LinkedList<PointOfInterest>();
+	protected ArrayAdapter<PointOfInterest> pointOfInterestAdapter;
+    protected ListView pointOfInterestListView;
+
+
 	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        pointsOfInterestAdapter = new ArrayAdapter<PointOfInterest>(this, android.R.layout.simple_list_item_single_choice);
+        loadPOI();
 
-        pointsOfInterestListView = (ListView) findViewById(android.R.id.list);
-        pointsOfInterestListView.setAdapter(pointsOfInterestAdapter);
+        // fill adapter
 
-        // pointsOfInterestListView.setOnItemClickListener(this);
+        pointOfInterestAdapter = new ArrayAdapter<PointOfInterest>(this, android.R.layout.simple_list_item_single_choice, pointOfInterest);
+        pointOfInterestListView = (ListView) findViewById(android.R.id.list);
+        pointOfInterestListView.setAdapter(pointOfInterestAdapter);
 
-        pointsOfInterestAdapter.add(new PointOfInterest("Contis plage", "", 0, 0, 5, new Date(), null));
-        pointsOfInterestAdapter.add(new PointOfInterest("Cliff of moher", "", 0, 0, 5, new Date(), null));
-        pointsOfInterestAdapter.add(new PointOfInterest("Museum of modern art, NY", "", 0, 0, 4, new Date(), null));
+        // pointOfInterestListView.setOnItemClickListener(this);
+        // pointOfInterestAdapter.add(new PointOfInterest("Contis plage", "", 0, 0, 5, new Date(), null));
+        // pointOfInterestAdapter.add(new PointOfInterest("Cliff of moher", "", 0, 0, 5, new Date(), null));
+        // pointOfInterestAdapter.add(new PointOfInterest("Museum of modern art, NY", "", 0, 0, 4, new Date(), null));
 
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        savePOI();
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -62,7 +75,7 @@ public class MainActivity extends ListActivity  {
     public boolean onPrepareOptionsMenu(Menu menu) {
     	super.onPrepareOptionsMenu(menu);
     	
-    	boolean visible = this.pointsOfInterestListView.getCheckedItemPosition() != AdapterView.INVALID_POSITION;
+    	boolean visible = this.pointOfInterestListView.getCheckedItemPosition() != AdapterView.INVALID_POSITION;
     	menu.findItem(R.id.removePOI).setVisible(visible);
     	menu.findItem(R.id.openGMap).setVisible(visible);
     	return true;
@@ -84,14 +97,14 @@ public class MainActivity extends ListActivity  {
         	return true; 
         	
         case R.id.removePOI:
-        	itemPosition = this.pointsOfInterestListView.getCheckedItemPosition();
-        	poi = this.pointsOfInterestAdapter.getItem(itemPosition);
-        	this.pointsOfInterestAdapter.remove(poi);
+        	itemPosition = this.pointOfInterestListView.getCheckedItemPosition();
+        	poi = this.pointOfInterestAdapter.getItem(itemPosition);
+        	this.pointOfInterestAdapter.remove(poi);
         	return true;
         	
         case R.id.openGMap:
-        	itemPosition = this.pointsOfInterestListView.getCheckedItemPosition();
-        	poi = this.pointsOfInterestAdapter.getItem(itemPosition);
+        	itemPosition = this.pointOfInterestListView.getCheckedItemPosition();
+        	poi = this.pointOfInterestAdapter.getItem(itemPosition);
         	Intent geoIntent = new Intent(android.content.Intent.ACTION_VIEW,
         			Uri.parse("geo:" + poi.getLattitude() + "," + poi.getLongitude()));
         	startActivity(geoIntent);
@@ -110,8 +123,40 @@ public class MainActivity extends ListActivity  {
 	        case EDIT_POI_RESULT:
 	            if (resultCode == Activity.RESULT_OK) {
 	            	PointOfInterest newPOI = (PointOfInterest) data.getSerializableExtra(DATA_POI_KEY);
-	            	pointsOfInterestAdapter.add(newPOI);
+	            	pointOfInterestAdapter.add(newPOI);
 	            }  
+        }
+    }
+
+
+    final static String filenamePOI = "poi-objects";
+
+    protected void savePOI() {
+        FileOutputStream fileOutputStream;
+        ObjectOutputStream objectOutputStream;
+
+        try {
+            fileOutputStream = openFileOutput(filenamePOI, Context.MODE_PRIVATE);
+            objectOutputStream = new ObjectOutputStream(fileOutputStream);
+            objectOutputStream.writeObject(pointOfInterest);
+            objectOutputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    projected void loadPOI() {
+        FileInputStream fileInputStream;
+        ObjectInputStream objectInputStream;
+
+        try {
+            fileInputStream = openFileInput(filenamePOI,Context.MODE_PRIVATE);
+            objectInputStream = new ObjectInputStream(fileInputStream);
+            List<PointOfInterest> pois = objectInputStream.readObject();
+            objectInputStream.close();
+            pointOfInterest.addAll(pois);
+        } catch (Exception e) {
+
         }
     }
 
@@ -122,9 +167,9 @@ public class MainActivity extends ListActivity  {
         FileOutputStream fos = context.openFileOutput(POI_FILENAME, Context.MODE_PRIVATE);
         ObjectOutputStream os = new ObjectOutputStream(fos);
         List<PointOfInterest> pois = new LinkedList<PointOfInterest>();
-        int count = pointsOfInterestAdapter.getCount();
+        int count = pointOfInterestAdapter.getCount();
         for (int i = 0; i < coun; i++) {
-            pois.add(pointsOfInterestAdapter.getItem(i);
+            pois.add(pointOfInterestAdapter.getItem(i);
         }
         os.writeObject(pois);
         os.close();
